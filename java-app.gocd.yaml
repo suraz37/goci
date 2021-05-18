@@ -1,0 +1,184 @@
+format_version: 9
+environments:
+  example:
+    pipelines:
+      - java-app-example-build
+common:
+  ## Environment Config
+  GROUP: &GROUP "EXAMPLE"
+  
+  RESOURCE_BUILDER: &RESOURCE_BUILDER "trivy"
+  RESOURCE_SIT: &RESOURCE_SIT "cg-common"
+  RESOURCE_UAT: &RESOURCE_UAT "cg-common"
+  RESOURCE_PROD: &RESOURCE_PROD "cg-common-prod"
+
+  ##Material Config
+  APP_REPO: &APP_REPO
+    git: "git@github.com:suraz37/goci.git"
+    shallow_clone: false
+    auto_update: true
+    branch: "master"
+    destination: java-app-example
+  INFRA_REPO: &INFRA_REPO        
+    git: "git@github.com:suraz37/goci.git"
+    shallow_clone: false
+    auto_update: true
+    branch: "master"
+    destination: cto-infra
+
+  ##Parameter Config
+  BU_NAME: &BU_NAME "common"
+  SERVICE_NAME: &SERVICE_NAME "java-app-example"
+  ECR: &ECR "491229787580.dkr.ecr.ap-southeast-1.amazonaws.com/common/java-app-example1"
+  ECR_PROD: &ECR_PROD "827655179358.dkr.ecr.ap-southeast-1.amazonaws.com/common/java-app-example1"
+
+  ##Job Config
+  SELECT_CLUSTER: &SELECT_CLUSTER
+    - exec:
+        arguments:
+        - -c
+        - kubectl config use-context '#{CLUSTER}'
+        command: /bin/sh
+        run_if: passed
+  DEPLOY_JOB: &DEPLOY_JOB
+    - exec:
+        arguments:
+        - -c
+        - ./helm-upgrade.sh '#{BU_NAME}' '#{SERVICE_NAME}' '#{ENV_NAME}' ${GO_PIPELINE_LABEL}
+        command: bash
+        run_if: passed
+        working_directory: cto-infra/helm/java-app-example/scripts1
+  CURL_TEST: &CURL_TEST
+    - exec:
+        arguments:
+        - -c
+        - curl '#{APP_URL}'
+        command: bash
+        run_if: passed
+  NOTI_SUCCESS: &NOTI_SUCCESS
+    - plugin:
+        configuration:
+          id: slack.task
+          version: '1'
+        options:
+          Message: |-
+            *Stage:* $GO_STAGE_NAME
+            *Job:* $GO_JOB_NAME
+            *Version:* $GO_PIPELINE_LABEL
+            *Pipeline:* $GO_SERVER_URL/tab/build/detail/$GO_PIPELINE_NAME/$GO_PIPELINE_COUNTER/$GO_STAGE_NAME/$GO_STAGE_COUNTER/$GO_JOB_NAME
+            *Triggered:* $GO_TRIGGER_USER
+          Channel: example
+          DisplayName: "$GO_PIPELINE_NAME"
+          Title:  "Successfully"
+          ColorType: Good
+          ChannelType: Channel
+          IconOrEmoji: ':java:'
+        run_if: passed
+  NOTI_FAIL: &NOTI_FAIL
+    - plugin:
+        configuration:
+          id: slack.task
+          version: '1'
+        options:
+          Message: |-
+            *Stage:* $GO_STAGE_NAME
+            *Job:* $GO_JOB_NAME
+            *Version:* $GO_PIPELINE_LABEL
+            *Pipeline:* $GO_SERVER_URL/tab/build/detail/$GO_PIPELINE_NAME/$GO_PIPELINE_COUNTER/$GO_STAGE_NAME/$GO_STAGE_COUNTER/$GO_JOB_NAME
+            *Triggered:* $GO_TRIGGER_USER
+          Channel: example
+          DisplayName: "$GO_PIPELINE_NAME"
+          Title: "Failed"
+          ColorType: Danger
+          ChannelType: Channel
+          IconOrEmoji: ':java:'
+        run_if: failed
+pipelines:
+  java-app-example-build:
+      group: *GROUP
+      label_template: ${app-repo[:8]}
+      lock_behavior: unlockWhenFinished
+      display_order: -1
+      parameters:
+        ECR: *ECR
+      materials:
+        app-repo: *APP_REPO
+      stages:
+      - sonarqube:
+          fetch_materials: true
+          keep_artifacts: false
+          clean_workspace: true
+          approval:
+            type: success
+            allow_only_on_success: true
+          jobs:
+            sonarqube-scan:
+              timeout: 0
+              resources:
+              - *RESOURCE_BUILDER
+              tasks:
+              - exec:
+                  arguments:
+                  - -c
+                  - docker build -f Dockerfile.sonar --rm .
+                  command: bash
+                  run_if: passed
+                  working_directory: java-app-example
+              - *NOTI_FAIL
+      - report-portal:
+          fetch_materials: false
+          keep_artifacts: false
+          clean_workspace: false
+          approval:
+            type: success
+            allow_only_on_success: true
+          jobs:
+            report-portal-execute:
+              timeout: 0
+              resources:
+              - *RESOURCE_BUILDER
+              tasks:
+              - exec:
+                  arguments:
+                  - -c
+                  - echo "report-portal"
+                  command: bash
+                  run_if: passed
+                  working_directory: java-app-example
+              - *NOTI_FAIL
+      - build-push-image-nonprod:
+          fetch_materials: false
+          keep_artifacts: false
+          clean_workspace: false
+          approval:
+            type: success
+            allow_only_on_success: true
+          jobs:
+            docker-build-push-image-nonprod:
+              timeout: 0
+              resources:
+              - *RESOURCE_BUILDER
+              artifacts:
+              - external:
+                  id: cg-common-java-app-example
+                  store_id: cg-common
+                  configuration:
+                    options:
+                      Tag: ${GO_PIPELINE_LABEL}
+                      Image: '#{ECR}'
+              tasks:
+              - exec:
+                  arguments:
+                  - -c
+                  - docker build --no-cache -t '#{ECR}':${GO_PIPELINE_LABEL} -f Dockerfile.deploy .
+                  command: bash
+                  run_if: passed
+                  working_directory: java-app-example
+              - exec:
+                  arguments:
+                  - -c
+                  - trivy image '#{ECR}':${GO_PIPELINE_LABEL}
+                  command: bash
+                  run_if: passed
+              - *NOTI_SUCCESS
+              - *NOTI_FAIL
