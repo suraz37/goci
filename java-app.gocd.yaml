@@ -1,3 +1,5 @@
+on: [push, pull_request]
+
 pipelines:
   lambda-template:
     group: webops
@@ -11,12 +13,23 @@ pipelines:
       - test:
           jobs:
             build:
-              tasks:
-                - exec:
-                    run_if: passed
-                    command: make
-                    arguments:
-                      - test
+                runs-on: ubuntu-latest
+
+                steps:
+                - uses: actions/checkout@v1
+                - name: Set up Python 3.7
+                    uses: actions/setup-python@v1
+                    with:
+                    python-version: 3.7
+                - name: Install dependencies
+                    run: |
+                    python -m pip install --upgrade pip
+                    pip install -r requirements.txt
+
+                - name: Lint with pylint
+                    run: |
+                    pip install pylint
+                    find . -type f -name "*.py" | xargs python -m pylint
       - deploy:
           jobs:
             deploy:
