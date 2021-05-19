@@ -1,5 +1,3 @@
-on: [push, pull_request]
-
 pipelines:
   lambda-template:
     group: webops
