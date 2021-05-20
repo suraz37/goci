@@ -11,7 +11,7 @@ pipelines:
     display_order: 1
     materials:
       git-config:
-        git: git@bitbucket.org:suraz37/goci.git
+        git: git@github.com:.git
         shallow_clone: false
         auto_update: false
         branch: master
@@ -29,41 +29,68 @@ pipelines:
           deploy-run:
             timeout: 0
             tasks:
-            - exec:
-                arguments:
-                - -c
-                - ls
-                command: bash
-                run_if: passed
-            - plugin:
-                    configuration:
-                      id: slack.task
-                      version: "2.0"
-                    options:
-                      Message: ""
-                      IconOrEmoji: ""
-                      Channel: cds-deployer
-                      Color: ""
-                      DisplayName: GO-BOT
-                      Title: 🎉 Completed Dev Deployment
-                      ColorType: Good
-                      MarkdownInText: ""
-                      FailOnError: ""
-                      ChannelType: Channel
-                    run_if: passed
-            - plugin:
-                configuration:
-                  id: slack.task
-                  version: "2.0"
-                options:
-                  Message: ""
-                  IconOrEmoji: ""
-                  Channel: cds-deployer
-                  Color: ""
-                  DisplayName: GO-BOT
-                  Title: 🔥 Failed  Dev Deployment
-                  ColorType: Danger
-                  MarkdownInText: ""
-                  FailOnError: ""
-                  ChannelType: Channel
-                run_if: failed
+              - plugin:
+                      configuration:
+                        id: slack.task
+                        version: "2.0"
+                      options:
+                        Message: "Deploying version #{build_tag}"
+                        IconOrEmoji: ""
+                        Channel: catalog-service-api-deployer
+                        Color: ""
+                        DisplayName: GO-BOT
+                        Title: 🚀 Starting OFM-FALCON Prod Deployment
+                        ColorType: Warning
+                        MarkdownInText: ""
+                        FailOnError: ""
+                        ChannelType: Channel
+                      run_if: passed
+                  - exec:
+                      arguments:
+                        - -c
+                        - ls
+                      command: bash
+                      working_directory: .
+                      run_if: passed
+                  - plugin:
+                      configuration:
+                        id: slack.task
+                        version: "2.0"
+                      options:
+                        Message: "Deployed version #{build_tag}"
+                        IconOrEmoji: ""
+                        Channel: catalog-service-api-deployer
+                        Color: ""
+                        DisplayName: GO-BOT
+                        Title: 🎉 Completed OFM-FALCON Prod Deployment
+                        ColorType: Good
+                        MarkdownInText: ""
+                        FailOnError: ""
+                        ChannelType: Channel
+                      run_if: passed
+                  - exec:
+                      arguments:
+                        - deploy-notify
+                        - "#{build_tag}"
+                        - "gocd"
+                      command: /bin/sh
+                      working_directory: .
+                      run_if: passed
+                  - plugin:
+                      configuration:
+                        id: slack.task
+                        version: "2.0"
+                      options:
+                        Message: "Failed deployment version #{build_tag}"
+                        IconOrEmoji: ""
+                        Channel: catalog-service-api-deployer
+                        Color: ""
+                        DisplayName: GO-BOT
+                        Title: 🔥 OFM-FALCON Prod Deployment Failed
+                        ColorType: Good
+                        MarkdownInText: ""
+                        FailOnError: ""
+                        ChannelType: Channel
+                      run_if: failed
+    parameters:
+      build_tag: 1.1.0
