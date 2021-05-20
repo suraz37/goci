@@ -10,7 +10,7 @@ pipelines:
     lock_behavior: unlockWhenFinished
     display_order: -1
     materials:
-      qa-run:
+      deploy-run:
         git: git@bitbucket.org:suraz37/goci.git
         shallow_clone: false
         auto_update: false
@@ -33,6 +33,6 @@ pipelines:
             - exec:
                 arguments:
                 - -c
-                - eval $(pip install -r requirements.txt)
+                - eval $(pip install -r requirements.txt
                 command: bash
                 run_if: passed
