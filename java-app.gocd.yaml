@@ -2,22 +2,22 @@ format_version: 9
 environments:
   maintainance:
     pipelines:
-      - catalog-service-api
+      - qa-run-boilerplate
 pipelines:
-  qa-run-template:
+  qa-run-boilerplate:
     group: maintainance
     label_template: ${COUNT}
     lock_behavior: unlockWhenFinished
     display_order: -1
     materials:
-      qa-repository:
-        git: '#{project_repo}'
+      qa-run:
+      git-7180be5:
+        git: git@bitbucket.org:suraz37/goci.git
         shallow_clone: false
         auto_update: false
-        branch: '#{project_branch}'
-        destination: '#{project}'
+        branch: main
     stages:
-    - qa-repository:
+    - qa-run:
         fetch_materials: true
         keep_artifacts: true
         clean_workspace: true
@@ -27,27 +27,53 @@ pipelines:
         jobs:
           qa-run:
             timeout: 0
+            tabs:
+              Test-Result: pwb-qa/Report0/report.html
             resources:
             - image-builder-3
+            artifacts:
+            - external:
+                id: qa-test-export
+                store_id: qa-test-qa
+                configuration:
+                  options:
+                    Destination: ${GO_PIPELINE_NAME}/${GO_PIPELINE_COUNTER}/${GO_STAGE_NAME}/${GO_STAGE_COUNTER}/${GO_JOB_NAME}
+                    Source: pwb-qa/Report*
             tasks:
             - exec:
                 arguments:
                 - -c
-                - eval 
+                - eval $(aws ecr get-login --no-include-email --region ap-southeast-1
+                  --registry-ids 841787149052)
+                - ''
                 command: bash
                 run_if: passed
             - exec:
                 arguments:
                 - -c
-                - echo $PWD
-                command: bash
-                working_directory: '#{project}'
+                - touch web_test.yaml
+                command: sh
+                working_directory: pwb-qa
+                run_if: passed
+            - exec:
+                arguments:
+                - -c
+                - cp -r etc/ pwb-qa/
+                command: sh
+                run_if: passed
+            - exec:
+                arguments:
+                - -c
+                - /bin/python3 ./etc/testrail_runner/testrail_runId_parser.py -r 
+                command: sh
+                working_directory: pwb-qa
+                run_if: passed
+            - exec:
+                arguments:
+                - -c
+                - '/bin/execute-tops #{qa_config} #{test_plans}'
+                command: sh
+                working_directory: pwb-qa
                 run_if: passed
     parameters:
-      project: catalog-service-api
-      project_repo: git@github.com:centraldigital/catalog-service-api.git
-      project_branch: main
-      test_file: testcases/
-      exclude_tag: incomplete
-      plan_id: '22109'
-      variable: '--variable ENV:staging'
+      test_plans: testcases/
