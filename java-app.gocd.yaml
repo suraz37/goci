@@ -7,8 +7,8 @@ pipelines:
   catalog-service-api-dev:
     group: catalog-service-api
     label_template: ${COUNT}
-    lock_behavior: unlockWhenFinished
-    display_order: -1
+    lock_behavior: none
+    display_order: 1
     materials:
       deploy-run:
         git: git@bitbucket.org:suraz37/goci.git
@@ -16,14 +16,16 @@ pipelines:
         auto_update: false
         branch: master
         destination: catalog-service-api
+        stage: build-image
+        ignore_for_scheduling: true
     stages:
     - deploy-run:
         fetch_materials: true
-        keep_artifacts: true
+        keep_artifacts: false
         clean_workspace: true
         approval:
           type: manual
-          allow_only_on_success: false
+          allow_only_on_success: true
         jobs:
           deploy-run:
             timeout: 0
