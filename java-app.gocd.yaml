@@ -6,6 +6,7 @@ environments:
 common:
   ## Environment Config test
   GROUP: &GROUP catalog-service-api-build
+  SLACK_WEBHOOK: &SLACK_WEBHOOK # slack url
   SLACK_CHANNEL: &SLACK_CHANNEL catalog-service-api
   SLACK_CHANNEL_TYPE: &SLACK_CHANNEL_TYPE Channel # Channel, User, Text
 
@@ -23,8 +24,14 @@ common:
 
   ## Parameter Config
   # project config
+  ECR_STORE: &ECR_STORE cg-common
   IMAGE_BU_NAME: &IMAGE_BU_NAME common
   PROJECT_NAME: &PROJECT_NAME catalog-service-api
+  ECR_NONPROD: &ECR_NONPROD # ecr url
+  # sonar config
+  SONAR_URL: &SONAR_URL https://sonarcloud.io
+  SONAR_PROJECT: &SONAR_PROJECT centraldigital_catalog-service-api
+  # app config
 
   ## Job Config
   NOTI_SUCCESS: &NOTI_SUCCESS
@@ -33,6 +40,7 @@ common:
           id: slack.task
           version: '2.0'
         options:
+          WebhookUrl: *SLACK_WEBHOOK
           Message: >-
             *Success:* $GO_PIPELINE_NAME
             *Version:* $GO_PIPELINE_LABEL
@@ -49,6 +57,7 @@ common:
           id: slack.task
           version: '2.0'
         options:
+          WebhookUrl: *SLACK_WEBHOOK
           Message: >-
             *Failed:* $GO_JOB_NAME
             *Version:* $GO_PIPELINE_LABEL
@@ -59,3 +68,109 @@ common:
           ColorType: Danger
           IconOrEmoji: ':alert:'
         run_if: failed
+  CLEAN_IMAGE: &CLEAN_IMAGE
+    - exec:
+        arguments:
+        - -c
+        - >-
+          if [ -n "$(docker image ls -q #{ECR}/#{IMAGE_BU_NAME}/${APP_NAME})" ]; then
+            docker rmi $(docker image ls -q #{ECR}/#{IMAGE_BU_NAME}/${APP_NAME}) --force;
+          fi
+        command: /bin/sh
+        run_if: any
+  BUILD_APP_TASKS: &BUILD_APP_TASKS
+    - *CLEAN_IMAGE
+    - exec: # select source
+        arguments:
+        - -c
+        - >-
+          git fetch --tags --prune &&
+          git checkout tags/$RELEASE_VERSION &&
+          git log -1
+        command: /bin/sh
+        working_directory: *APP_REPO_DIR
+        run_if: passed
+    - exec: # track version
+        arguments:
+        - -c
+        - >-
+          VERSION="${GO_PIPELINE_LABEL}";
+          cd ./${APP_PATH};
+          PROJ_FILE=$(ls *.csproj);
+          sed -i.bak "s/0.0.0.0-VERSION/$VERSION/" $PROJ_FILE;
+          rm $PROJ_FILE.bak;
+        command: /bin/sh
+        run_if: passed
+        working_directory: *APP_REPO_DIR
+    - exec: # build image
+        arguments:
+        - -c
+        - >-
+          DOCKER_BUILDKIT=1
+          docker build --no-cache --rm
+          --tag #{ECR}/#{IMAGE_BU_NAME}/${APP_NAME}:${GO_PIPELINE_LABEL}
+          --tag #{ECR}/#{IMAGE_BU_NAME}/${APP_NAME}:latest
+          --file ${APP_DOCKERFILE} .
+        command: /bin/sh
+        run_if: passed
+        working_directory: *APP_REPO_DIR
+    - exec: # show image detail
+        arguments:
+        - -c
+        - "docker image list -a --digests #{ECR}/#{IMAGE_BU_NAME}/${APP_NAME}:${GO_PIPELINE_LABEL}"
+        command: /bin/sh
+        run_if: passed
+    - exec: # scan image
+        arguments:
+        - -c
+        - >-
+          cat .trivyignore;
+          echo "Overall security scan";
+          trivy image --exit-code 0 --ignorefile . #{ECR}/#{IMAGE_BU_NAME}/${APP_NAME}:${GO_PIPELINE_LABEL};
+          echo "Verify severity";
+          trivy image --exit-code #{BLOCK_IMAGE_SCAN} --severity HIGH,CRITICAL,MEDIUM --ignore-unfixed #{ECR}/#{IMAGE_BU_NAME}/${APP_NAME}:${GO_PIPELINE_LABEL};
+        command: /bin/sh
+        run_if: passed
+        working_directory: *APP_REPO_DIR
+    - *NOTI_FAIL
+
+pipelines:
+  catalog-service-api-build:
+    group: *GROUP
+    label_template: ${env:RELEASE_VERSION}.${COUNT}
+    lock_behavior: unlockWhenFinished
+    display_order: 2
+    parameters:
+      # project config
+      IMAGE_BU_NAME: *IMAGE_BU_NAME
+      ECR: *ECR_NONPROD
+      PROJECT_NAME: *PROJECT_NAME
+      # sonar config
+      SONAR_URL: *SONAR_URL
+      SONAR_PROJECT: *SONAR_PROJECT
+      BLOCK_IMAGE_SCAN: 1 # true
+    environment_variables:
+      RELEASE_VERSION: # git tag name
+    materials:
+      application-repo: *APP_REPO
+    stages:
+    - check-variable:
+        fetch_materials: false
+        keep_artifacts: false
+        clean_workspace: false
+        approval:
+          type: manual
+          allow_only_on_success: true
+        jobs:
+          check-variable:
+            timeout: 0
+            resources:
+            - *RESOURCE_BUILDER
+            tasks:
+            - exec:
+                arguments:
+                - -c
+                - 'if [[ -z ${RELEASE_VERSION} ]]; then echo "please fill in RELEASE_VERSION by trigger with options" && exit 1; fi'
+                command: /bin/sh
+                run_if: passed
+    
