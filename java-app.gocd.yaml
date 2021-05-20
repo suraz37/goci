@@ -23,8 +23,8 @@ pipelines:
           chrome:
             timeout: 0
             environment_variables:
-              LT_USERNAME: {LambdaTest username here}
-              LT_ACCESS_KEY: {LambdaTest accessKey here}
+              LT_USERNAME: 123
+              LT_ACCESS_KEY: 12312
             tasks:
             - exec:
                 arguments:
