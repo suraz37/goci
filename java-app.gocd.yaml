@@ -1,6 +1,6 @@
 format_version: 9
 environments:
-  catalog-service-api-team:
+  catalog-service-api:
     pipelines:
       - catalog-service-api
 common:
@@ -16,7 +16,7 @@ common:
   APP_REPO_DIR: &APP_REPO_DIR catalog-service-api
   APP_REPO: &APP_REPO
     git: git@github.com:centraldigital/catalog-service-api.git
-    branch: master
+    branch: main
     destination: *APP_REPO_DIR
     shallow_clone: false
     auto_update: true
