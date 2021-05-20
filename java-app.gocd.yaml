@@ -1,31 +1,37 @@
-format_version:9
+format_version: 9
+environments:
+  catalog-service-api:
+    pipelines:
+      - catalog-service-api-dev
 pipelines:
   catalog-service-api-dev:
     group: catalog-service-api
     label_template: ${COUNT}
     lock_behavior: none
-    display_order: -1
+    display_order: 1
     materials:
       git-config:
         git: git@bitbucket.org:suraz37/goci.git
         shallow_clone: false
-        auto_update: true
+        auto_update: false
         branch: master
+        destination: catalog-service-api
+        ignore_for_scheduling: true
     stages:
     - deploy-run:
         fetch_materials: true
         keep_artifacts: false
-        clean_workspace: false
+        clean_workspace: true
         approval:
-          type: success
-          allow_only_on_success: false
+          type: manual
+          allow_only_on_success: true
         jobs:
-          run-unit-tests:
+          deploy-run:
             timeout: 0
             tasks:
             - exec:
-                command: ls
-                run_if: passed
-            - exec:
-                command: ./build
+                arguments:
+                - -c
+                - ls
+                command: bash
                 run_if: passed
