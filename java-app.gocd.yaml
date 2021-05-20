@@ -1,18 +1,18 @@
-format_version: 10
+format_version:9
 pipelines:
-  catalog-service-api-sit:
+  catalog-service-api-dev:
     group: catalog-service-api
     label_template: ${COUNT}
     lock_behavior: none
     display_order: -1
     materials:
-      git-c5bda0c:
+      git-config:
         git: git@bitbucket.org:suraz37/goci.git
         shallow_clone: false
         auto_update: true
         branch: master
     stages:
-    - test-and-reports:
+    - deploy-run:
         fetch_materials: true
         keep_artifacts: false
         clean_workspace: false
