@@ -35,3 +35,35 @@ pipelines:
                 - ls
                 command: bash
                 run_if: passed
+            - plugin:
+                    configuration:
+                      id: slack.task
+                      version: "2.0"
+                    options:
+                      Message: ""
+                      IconOrEmoji: ""
+                      Channel: cds-deployer
+                      Color: ""
+                      DisplayName: GO-BOT
+                      Title: 🎉 Completed Dev Deployment
+                      ColorType: Good
+                      MarkdownInText: ""
+                      FailOnError: ""
+                      ChannelType: Channel
+                    run_if: passed
+            - plugin:
+                configuration:
+                  id: slack.task
+                  version: "2.0"
+                options:
+                  Message: ""
+                  IconOrEmoji: ""
+                  Channel: cds-deployer
+                  Color: ""
+                  DisplayName: GO-BOT
+                  Title: 🔥 Failed  Dev Deployment
+                  ColorType: Danger
+                  MarkdownInText: ""
+                  FailOnError: ""
+                  ChannelType: Channel
+                run_if: failed
