@@ -59,7 +59,6 @@ common:
           IconOrEmoji: ':alert:'
         run_if: failed
   BUILD_APP_TASKS: &BUILD_APP_TASKS
-    - *CLEAN_IMAGE
     - exec: # select source
         arguments:
         - -c
