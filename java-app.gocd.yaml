@@ -1,79 +1,39 @@
-format_version: 9
-environments:
-  maintainance:
-    pipelines:
-      - qa-run-boilerplate
+format_version: 3
 pipelines:
-  qa-run-boilerplate:
-    group: maintainance
+  nightwatch-gocd-sample:
+    group: My-Pipelines
     label_template: ${COUNT}
-    lock_behavior: unlockWhenFinished
+    lock_behavior: none
     display_order: -1
     materials:
-      qa-run:
-      git-7180be5:
-        git: git@bitbucket.org:suraz37/goci.git
+      git:
+        git: https://github.com/LambdaTest/nightwatch-selenium-sample
         shallow_clone: false
-        auto_update: false
-        branch: main
+        auto_update: true
+        branch: master
     stages:
-    - qa-run:
+    - acceptence-testing:
         fetch_materials: true
-        keep_artifacts: true
-        clean_workspace: true
+        keep_artifacts: false
+        clean_workspace: false
         approval:
           type: success
           allow_only_on_success: false
         jobs:
-          qa-run:
+          chrome:
             timeout: 0
-            tabs:
-              Test-Result: pwb-qa/Report0/report.html
-            resources:
-            - image-builder-3
-            artifacts:
-            - external:
-                id: qa-test-export
-                store_id: qa-test-qa
-                configuration:
-                  options:
-                    Destination: ${GO_PIPELINE_NAME}/${GO_PIPELINE_COUNTER}/${GO_STAGE_NAME}/${GO_STAGE_COUNTER}/${GO_JOB_NAME}
-                    Source: pwb-qa/Report*
+            environment_variables:
+              LT_USERNAME: {LambdaTest username here}
+              LT_ACCESS_KEY: {LambdaTest accessKey here}
             tasks:
             - exec:
                 arguments:
-                - -c
-                - eval $(aws ecr get-login --no-include-email --region ap-southeast-1
-                  --registry-ids 841787149052)
-                - ''
-                command: bash
+                - install
+                command: npm
                 run_if: passed
             - exec:
                 arguments:
-                - -c
-                - touch web_test.yaml
-                command: sh
-                working_directory: pwb-qa
+                - -e
+                - chrome
+                command: ./node_modules/.bin/nightwatch
                 run_if: passed
-            - exec:
-                arguments:
-                - -c
-                - cp -r etc/ pwb-qa/
-                command: sh
-                run_if: passed
-            - exec:
-                arguments:
-                - -c
-                - /bin/python3 ./etc/testrail_runner/testrail_runId_parser.py -r 
-                command: sh
-                working_directory: pwb-qa
-                run_if: passed
-            - exec:
-                arguments:
-                - -c
-                - '/bin/execute-tops #{qa_config} #{test_plans}'
-                command: sh
-                working_directory: pwb-qa
-                run_if: passed
-    parameters:
-      test_plans: testcases/
