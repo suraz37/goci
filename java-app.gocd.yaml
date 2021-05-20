@@ -1,6 +1,6 @@
 format_version: 9
 environments:
-  maintainance:
+  catalog-service-api:
     pipelines:
       - catalog-service-api-gocd
 pipelines:
