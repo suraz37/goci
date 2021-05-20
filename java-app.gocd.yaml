@@ -43,17 +43,6 @@ pipelines:
               Test-Result: cds-qa/Report0/report.html
             resources:
             - image-builder-3
-            artifacts:
-            - external:
-                id: qa-test-export
-                store_id: qa-test-qa
-                configuration:
-                  options:
-                    Destination: ${GO_PIPELINE_NAME}/${GO_PIPELINE_COUNTER}/${GO_STAGE_NAME}/${GO_STAGE_COUNTER}/${GO_JOB_NAME}
-                    Source: cds-qa/Report*
-            - test:
-                source: cds-qa/Report*
-                destination: testoutput
             tasks:
             - exec:
                 arguments:
