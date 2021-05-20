@@ -2,10 +2,10 @@ format_version: 9
 environments:
   catalog-service-api-team:
     pipelines:
-      - catalog-service-api-build
+      - catalog-service-api
 common:
   ## Environment Config test
-  GROUP: &GROUP catalog-service-api-build
+  GROUP: &GROUP catalog-service-api
   SLACK_CHANNEL: &SLACK_CHANNEL catalog-service-api
   SLACK_CHANNEL_TYPE: &SLACK_CHANNEL_TYPE Channel # Channel, User, Text
 
