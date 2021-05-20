@@ -2,9 +2,9 @@ format_version: 9
 environments:
   catalog-service-api:
     pipelines:
-      - catalog-service-api-gocd
+      - catalog-service-api-dev
 pipelines:
-  catalog-service-api-gocd:
+  catalog-service-api-dev:
     group: catalog-service-api
     label_template: ${COUNT}
     lock_behavior: unlockWhenFinished
@@ -33,9 +33,6 @@ pipelines:
             - exec:
                 arguments:
                 - -c
-                - eval $(pip install -r requirements.txt
-pip install --target ./package -r requirements.txt)
-                - ''
+                - eval $(pip install -r requirements.txt)
                 command: bash
                 run_if: passed
-
