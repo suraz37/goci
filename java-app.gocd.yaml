@@ -1,59 +1,95 @@
-#ci.gocd.yaml
 format_version: 9
 environments:
-  testing:
-    environment_variables:
-      DEPLOYMENT: testing
-    secure_variables:
-      ENV_PASSWORD: "s&Du#@$xsSa"
+  maintainance:
     pipelines:
-      - example-deploy-testing
-      - build-testing
+      - gift-gocd
 pipelines:
-  mypipe1: # definition of mypipe1 pipeline
-    group: mygroup # note that the group name can contain only of alphanumeric & underscore characters
-    display_order: 10
-    label_template: "${mygit[:8]}"
-    lock_behavior: none
-    parameters: # list of parameters that can be configured for a pipeline
-      param1: value1
+  gift-gocd:
+    group: maintainance
+    label_template: ${COUNT}
+    lock_behavior: unlockWhenFinished
+    display_order: -1
     materials:
-      mygit: # this is the name of material, the name can contain only of alphanumeric & underscore characters
-        # keyword git says about type of material and url at once
-        git: http://my.example.org/mygit.git
-        branch: ci
-      myupstream: # this name does not matter, but there should be no 2 materials with the same name
-        # type is optional here, material type is implied based on presence of pipeline and stage fields
-        # type: dependency
-        pipeline: pipe2
-        stage: test
-    stages: # list of stages in order
-      - build: # name of stage
-          clean_workspace: true
-          jobs:
-            csharp: # name of the job
-              resources:
-               - net45
-              artifacts:
-               - build:
-                   source: bin/
-                   destination: build
-               - test:
-                   source: tests/
-                   destination: test-reports/
-               - test:
-                   source: coverage.xml
-              tabs:
-                report: test-reports/index.html
-              tasks: # ordered list of tasks to execute in job csharp
-               - fetch:
-                   pipeline: pipe2
-                   stage: build
-                   job: test
-                   source: test-bin/
-                   destination: bin/
-               - exec: # indicates type of task
-                   command: make
-                   arguments:
-                    - "VERBOSE=true"
-               # shorthand for script-executor plugin
+      qa-run:
+        git: git@bitbucket.org:centraltechnology/cds-core1.git
+        shallow_clone: false
+        auto_update: false
+        branch: master
+        destination: cds-qa
+      testrail_runner:
+        git: git@bitbucket.org:centraltechnology/testrail_runner1.git
+        shallow_clone: false
+        auto_update: false
+        branch: master
+        destination: etc
+      git-7180be5:
+        git: git@bitbucket.org:centraltechnology/qa-config1.git
+        shallow_clone: false
+        auto_update: false
+        branch: master
+        destination: qa-config
+    stages:
+    - qa-run:
+        fetch_materials: true
+        keep_artifacts: true
+        clean_workspace: true
+        approval:
+          type: manual
+          allow_only_on_success: false
+        jobs:
+          qa-run:
+            timeout: 0
+            tabs:
+              Test-Result: cds-qa/Report0/report.html
+            resources:
+            - image-builder-3
+            artifacts:
+            - external:
+                id: qa-test-export
+                store_id: qa-test-qa
+                configuration:
+                  options:
+                    Destination: ${GO_PIPELINE_NAME}/${GO_PIPELINE_COUNTER}/${GO_STAGE_NAME}/${GO_STAGE_COUNTER}/${GO_JOB_NAME}
+                    Source: cds-qa/Report*
+            - test:
+                source: cds-qa/Report*
+                destination: testoutput
+            tasks:
+            - exec:
+                arguments:
+                - -c
+                - eval $(aws ecr get-login --no-include-email --region ap-southeast-1
+                  --registry-ids 841787149052)
+                - ''
+                command: bash
+                run_if: passed
+            - exec:
+                arguments:
+                - -c
+                - touch web_test.yaml
+                command: sh
+                working_directory: cds-qa
+                run_if: passed
+            - exec:
+                arguments:
+                - -c
+                - cp -r etc/ cds-qa/
+                command: sh
+                run_if: passed
+            - exec:
+                arguments:
+                - -c
+                - /bin/python3 
+                command: sh
+                working_directory: cds-qa
+                run_if: passed
+            - exec:
+                arguments:
+                - -c
+                - '/bin/execute-tops #{qa_config} #{test_plans}'
+                command: sh
+                working_directory: cds-qa
+                run_if: passed
+    parameters:
+      test_plans: testcases/
+      qa_config: ../qa-config/test-cds.txt
