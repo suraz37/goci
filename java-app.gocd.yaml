@@ -2,10 +2,10 @@ format_version: 9
 environments:
   maintainance:
     pipelines:
-      - gift-gocd
+      - catalog-service-api-gocd
 pipelines:
-  gift-gocd:
-    group: maintainance
+  catalog-service-api-gocd:
+    group: catalog-service-api
     label_template: ${COUNT}
     lock_behavior: unlockWhenFinished
     display_order: -1
@@ -15,21 +15,9 @@ pipelines:
         shallow_clone: false
         auto_update: false
         branch: master
-        destination: cds-qa
-      testrail_runner:
-        git: git@bitbucket.org:centraltechnology/testrail_runner1.git
-        shallow_clone: false
-        auto_update: false
-        branch: master
-        destination: etc
-      git-7180be5:
-        git: git@bitbucket.org:centraltechnology/qa-config1.git
-        shallow_clone: false
-        auto_update: false
-        branch: master
-        destination: qa-config
+        destination: catalog-service-api
     stages:
-    - qa-run:
+    - deploy-run:
         fetch_materials: true
         keep_artifacts: true
         clean_workspace: true
@@ -37,10 +25,8 @@ pipelines:
           type: manual
           allow_only_on_success: false
         jobs:
-          qa-run:
+          deploy-run:
             timeout: 0
-            tabs:
-              Test-Result: cds-qa/Report0/report.html
             resources:
             - image-builder-3
             tasks:
@@ -55,13 +41,6 @@ pipelines:
             - exec:
                 arguments:
                 - -c
-                - touch web_test.yaml
-                command: sh
-                working_directory: cds-qa
-                run_if: passed
-            - exec:
-                arguments:
-                - -c
                 - cp -r etc/ cds-qa/
                 command: sh
                 run_if: passed
@@ -72,13 +51,5 @@ pipelines:
                 command: sh
                 working_directory: cds-qa
                 run_if: passed
-            - exec:
-                arguments:
-                - -c
-                - '/bin/execute-tops #{qa_config} #{test_plans}'
-                command: sh
-                working_directory: cds-qa
-                run_if: passed
     parameters:
       test_plans: testcases/
-      qa_config: ../qa-config/test-cds.txt
