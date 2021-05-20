@@ -1,118 +1,53 @@
 format_version: 9
 environments:
-  catalog-service-api:
+  maintainance:
     pipelines:
       - catalog-service-api
-common:
-  ## Environment Config test
-  GROUP: &GROUP catalog-service-api
-  SLACK_CHANNEL: &SLACK_CHANNEL catalog-service-api
-  SLACK_CHANNEL_TYPE: &SLACK_CHANNEL_TYPE Channel # Channel, User, Text
-
-  ## GoCD Agent
-  RESOURCE_BUILDER: &RESOURCE_BUILDER trivy
-
-  ## Material Config
-  APP_REPO_DIR: &APP_REPO_DIR catalog-service-api
-  APP_REPO: &APP_REPO
-    git: git@github.com:centraldigital/catalog-service-api.git
-    branch: main
-    destination: *APP_REPO_DIR
-    shallow_clone: false
-    auto_update: true
-
-  ## Parameter Config
-  # project config
-  PROJECT_NAME: &PROJECT_NAME catalog-service-api
-
-  ## Job Config
-  NOTI_SUCCESS: &NOTI_SUCCESS
-    - plugin:
-        configuration:
-          id: slack.task
-          version: '2.0'
-        options:
-          Message: >-
-            *Success:* $GO_PIPELINE_NAME
-            *Version:* $GO_PIPELINE_LABEL
-            <$GO_SERVER_URL/pipelines/value_stream_map/$GO_PIPELINE_NAME/$GO_PIPELINE_COUNTER|[Pipeline]>
-          Channel: *SLACK_CHANNEL
-          ChannelType: *SLACK_CHANNEL_TYPE
-          DisplayName: $GO_PIPELINE_NAME
-          ColorType: Good
-          IconOrEmoji: ':+1'
-        run_if: passed
-  NOTI_FAIL: &NOTI_FAIL
-    - plugin:
-        configuration:
-          id: slack.task
-          version: '2.0'
-        options:
-          Message: >-
-            *Failed:* $GO_JOB_NAME
-            *Version:* $GO_PIPELINE_LABEL
-            <$GO_SERVER_URL/tab/build/detail/$GO_PIPELINE_NAME/$GO_PIPELINE_COUNTER/$GO_STAGE_NAME/$GO_STAGE_COUNTER/$GO_JOB_NAME|[Pipeline]>
-          Channel: *SLACK_CHANNEL
-          ChannelType: *SLACK_CHANNEL_TYPE
-          DisplayName: $GO_PIPELINE_NAME
-          ColorType: Danger
-          IconOrEmoji: ':alert:'
-        run_if: failed
-  BUILD_APP_TASKS: &BUILD_APP_TASKS
-    - exec: # select source
-        arguments:
-        - -c
-        - >-
-          git fetch --tags --prune &&
-          git checkout tags/$RELEASE_VERSION &&
-          git log -1
-        command: /bin/sh
-        working_directory: *APP_REPO_DIR
-        run_if: passed
-    - exec: # track version
-        arguments:
-        - -c
-        - >-
-          VERSION="${GO_PIPELINE_LABEL}";
-          cd ./${APP_PATH};
-          PROJ_FILE=$(ls *.csproj);
-          sed -i.bak "s/0.0.0.0-VERSION/$VERSION/" $PROJ_FILE;
-          rm $PROJ_FILE.bak;
-        command: /bin/sh
-        run_if: passed
-        working_directory: *APP_REPO_DIR
-
 pipelines:
-  catalog-service-api-build:
-    group: *GROUP
-    label_template: ${env:RELEASE_VERSION}.${COUNT}
+  qa-run-template:
+    group: maintainance
+    label_template: ${COUNT}
     lock_behavior: unlockWhenFinished
-    display_order: 2
-    parameters:
-      # project config
-      PROJECT_NAME: *PROJECT_NAME
-    environment_variables:
-      RELEASE_VERSION: # git tag name
+    display_order: -1
     materials:
-      application-repo: *APP_REPO
+      qa-repository:
+        git: '#{project_repo}'
+        shallow_clone: false
+        auto_update: false
+        branch: '#{project_branch}'
+        destination: '#{project}'
     stages:
-    - check-variable:
-        fetch_materials: false
-        keep_artifacts: false
-        clean_workspace: false
+    - qa-repository:
+        fetch_materials: true
+        keep_artifacts: true
+        clean_workspace: true
         approval:
-          type: manual
-          allow_only_on_success: true
+          type: success
+          allow_only_on_success: false
         jobs:
-          check-variable:
+          qa-run:
             timeout: 0
             resources:
-            - *RESOURCE_BUILDER
+            - image-builder-3
             tasks:
             - exec:
                 arguments:
                 - -c
-                - 'if [[ -z ${RELEASE_VERSION} ]]; then echo "please fill in RELEASE_VERSION by trigger with options" && exit 1; fi'
-                command: /bin/sh
+                - eval 
+                command: bash
                 run_if: passed
-    
+            - exec:
+                arguments:
+                - -c
+                - echo $PWD
+                command: bash
+                working_directory: '#{project}'
+                run_if: passed
+    parameters:
+      project: catalog-service-api
+      project_repo: git@github.com:centraldigital/catalog-service-api.git
+      project_branch: main
+      test_file: testcases/
+      exclude_tag: incomplete
+      plan_id: '22109'
+      variable: '--variable ENV:staging'
