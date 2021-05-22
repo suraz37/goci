@@ -11,7 +11,7 @@ pipelines:
     display_order: 1
     materials:
       git-config:
-        git: git@github.com:centraldigital/catalog-service-api.git
+        git: git@github.com:suraz37/goci.git
         shallow_clone: false
         auto_update: false
         branch: master
@@ -28,6 +28,8 @@ pipelines:
         jobs:
           deploy-run:
             timeout: 0
+            resources:
+              - trivy
             tasks:
               - plugin:
                   configuration:
@@ -52,45 +54,3 @@ pipelines:
                   command: bash
                   working_directory: .
                   run_if: passed
-              - plugin:
-                  configuration:
-                    id: slack.task
-                    version: "2.0"
-                  options:
-                    Message: "Deployed version #{build_tag}"
-                    IconOrEmoji: ""
-                    Channel: catalog-service-api-deployer
-                    Color: ""
-                    DisplayName: GO-BOT
-                    Title: 🎉 Completed OFM-FALCON Prod Deployment
-                    ColorType: Good
-                    MarkdownInText: ""
-                    FailOnError: ""
-                    ChannelType: Channel
-                  run_if: passed
-              - exec:
-                  arguments:
-                    - deploy-notify
-                    - "#{build_tag}"
-                    - "gocd"
-                  command: /bin/sh
-                  working_directory: .
-                  run_if: passed
-              - plugin:
-                  configuration:
-                    id: slack.task
-                    version: "2.0"
-                  options:
-                    Message: "Failed deployment version #{build_tag}"
-                    IconOrEmoji: ""
-                    Channel: catalog-service-api-deployer
-                    Color: ""
-                    DisplayName: GO-BOT
-                    Title: 🔥 OFM-FALCON Prod Deployment Failed
-                    ColorType: Good
-                    MarkdownInText: ""
-                    FailOnError: ""
-                    ChannelType: Channel
-                  run_if: failed
-    parameters:
-      build_tag: 1.1.0
