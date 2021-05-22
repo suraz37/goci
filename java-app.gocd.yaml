@@ -36,7 +36,7 @@ pipelines:
                     id: slack.task
                     version: "2.0"
                   options:
-                    Message: "Deploying version #{build_tag}"
+                    Message: "Deploying version "
                     IconOrEmoji: ""
                     Channel: catalog-service-api-deployer
                     Color: ""
