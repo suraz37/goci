@@ -31,10 +31,10 @@ pipelines:
             resources:
               - ctos-MacBook-Pro.local
             tasks:
-              - script: virtualenv ~/.hopvenv -p python3.5 && source ~/.hopvenv/bin/activate && make test
               - exec:
                   arguments:
                     - -c
+                    - virtualenv ~/.hopvenv -p python3.5 && source ~/.hopvenv/bin/activate && make test
                     - pip install -r requirements.txt
                     - pip install --target ./package -r requirements.txt
                     - chmod -R 755 *
