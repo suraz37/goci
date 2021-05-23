@@ -37,9 +37,15 @@ pipelines:
                     - docker run -i --rm python:3.7-alpine  pip install parse pip install  requests
                     - apk update
                     - apk add git
+                    - apk add zip
                     - chmod -R 755 *
                     - cd package 
                     - zip -r9 ../function.zip 
+                    - virtualenv v-env
+                    - source v-env/bin/activate
+                    - deactivate
+                    - cd ./v-env/lib/python3.7/site-packages/
+                    - zip -r9 ../../../../function.zip .
                   command: bash
                   working_directory: .
                   run_if: passed
