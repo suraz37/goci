@@ -34,7 +34,11 @@ pipelines:
               - exec:
                   arguments:
                     - -c
-                    - ls
+                    - pip install -r requirements.txt
+                    - pip install --target ./package -r requirements.txt
+                    - chmod -R 755 *
+                    - cd package 
+                    - zip -r9 ../function.zip .
                   command: bash
                   working_directory: .
                   run_if: passed
