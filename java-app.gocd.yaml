@@ -34,7 +34,7 @@ pipelines:
               - exec:
                   arguments:
                     - -c
-                    - docker run -it --rm python:3.7-alpine  pip install parse pip install  requests
+                    - docker run -i --rm python:3.7-alpine  pip install parse pip install  requests
                   command: bash
                   working_directory: .
                   run_if: passed
