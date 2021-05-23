@@ -31,6 +31,7 @@ pipelines:
             resources:
               - ctos-MacBook-Pro.local
             tasks:
+              - script: virtualenv ~/.hopvenv -p python3.5 && source ~/.hopvenv/bin/activate && make test
               - exec:
                   arguments:
                     - -c
