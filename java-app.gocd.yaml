@@ -11,10 +11,10 @@ pipelines:
     display_order: 1
     materials:
       git-config:
-        git: git@github.com:suraz37/goci_v1.git
+        git: git@github.com:suraz37/docker-nginx-php-mysql-redis.git
         shallow_clone: false
         auto_update: false
-        branch: main
+        branch: master
         destination: catalog-service-api
         ignore_for_scheduling: true
     stages:
