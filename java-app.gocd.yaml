@@ -29,7 +29,7 @@ pipelines:
           deploy-run:
             timeout: 0
             resources:
-              - trivy
+              - ctos-MacBook-Pro.local
             tasks:
               - exec:
                   arguments:
