@@ -14,7 +14,7 @@ pipelines:
         git: git@github.com:suraz37/goci.git
         shallow_clone: false
         auto_update: false
-        branch: master
+        branch: main
         destination: catalog-service-api
         ignore_for_scheduling: true
     stages:
