@@ -34,7 +34,8 @@ pipelines:
               - exec:
                   arguments:
                     - -c
-                    - ../venv/bin/python -m pip install -r requests
+                    - docker run -it --rm python:3.7-alpine  pip install parse pip install  requests
+                    - apk update
                     - chmod -R 755 *
                     - cd package 
                     - zip -r9 ../function.zip .
