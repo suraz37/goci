@@ -34,9 +34,7 @@ pipelines:
               - exec:
                   arguments:
                     - -c
-                    - virtualenv ~/.hopvenv -p python3.5 && source ~/.hopvenv/bin/activate && make test
-                    - pip install -r requirements.txt
-                    - pip install --target ./package -r requirements.txt
+                    - ../venv/bin/python -m pip install -r requests
                     - chmod -R 755 *
                     - cd package 
                     - zip -r9 ../function.zip .
