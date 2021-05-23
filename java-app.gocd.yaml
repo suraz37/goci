@@ -11,7 +11,7 @@ pipelines:
     display_order: 1
     materials:
       git-config:
-        git: git@github.com:suraz37/goci.git
+        git: git@github.com:suraz37/goci_v1.git
         shallow_clone: false
         auto_update: false
         branch: main
