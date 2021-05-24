@@ -45,7 +45,10 @@ pipelines:
                     - source v-env/bin/activate
                     - deactivate
                     - cd ./v-env/lib/python3.7/site-packages/
-                    - zip -r9 ../../../../function.zip .
+                    - zip -r9 ../../../../function.zip 
+                    - aws lambda update-function-configuration --function-name f1 --environment Variables={KeyName1=string,KeyName2=string} --region r1
+                    - aws lambda update-function-code --function-name f1 --zip-file fileb://function.zip --region r1
+                    - aws lambda publish-version --function-name f1 --description 11 --region r1
                   command: bash
                   working_directory: .
                   run_if: passed
